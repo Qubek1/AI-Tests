@@ -1,0 +1,59 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct CircleEntity
+{
+    float2 position;
+    float2 forceVector;
+    float radius;
+    float weight;
+    bool isStatic;
+};
+
+struct BoxEntity
+{
+    float2 position;
+    float2 size;
+    float2 forceVector;
+    float weight;
+    bool isStatic;
+};
+
+RWStructuredBuffer<CircleEntity> circleEntities;
+RWStructuredBuffer<BoxEntity> boxEntities;
+
+uint circleEntitiesAmount;
+uint boxEntitiesAmount;
+
+[numthreads(64, 1, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x < circleEntitiesAmount)
+    {
+        for (int c = 0; c < circleEntitiesAmount; c++)
+        {
+            if (lenght(circleEntities[id.x].position - circleEntities[c].position) < circleEntities[id.x].radius + circleEntities[c].radius)
+            {
+                circleEntities[id.x].direction +=
+                    (circleEntities[id.x].position - circleEntities[c].position) *
+                    circleEntities[id.x].weight / (circleEntities[id.x].weight + circleEntities[c].weight);
+            }
+        }
+        for (int b = 0; b < boxEntitiesAmount; b++)
+        {
+        }
+    }
+    else if (id.x < circleEntitiesAmount + boxEntitiesAmount)
+    {
+
+    }
+
+    // TODO: insert actual code here!
+
+    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+}
+
+float2 circleBoxDifferenceVector(CircleEntity circleEntity, BoxEntity boxEntity)
+{
+    float2 v = float2(0, 0);
+}

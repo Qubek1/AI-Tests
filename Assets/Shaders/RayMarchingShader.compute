@@ -1,0 +1,54 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+
+int2 resolution;
+float cameraZ;
+float3 repeatVector;
+float time;
+
+float SphereDistance(float3 p, float r, float3 s);
+float3 repeat(float3 v, float3 r);
+float3 rotate(float3 v, float a);
+
+[numthreads(8,8,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float3 ray = normalize(float3((int)(id.x) - resolution.x / 2, (int)(id.y) - resolution.y / 2, (float)(resolution.x) * cameraZ));
+    float3 p = float3(0, 0, 0);
+
+    float distance = 0;
+
+    for (int i = 0; i < 80; i++)
+    {
+        distance = SphereDistance(repeat(rotate(p, time), repeatVector), 4.0, float3(0, 0, 40));
+        p += ray * distance;
+        //Result[id.xy] = float4(i / 80.0, i / 80.0, i / 80.0, 1.0);
+        Result[id.xy] = float4(1 - length(p) / 100.0, i / 80.0, i / 80.0, 1.0);
+
+        if (distance > 10000 || distance < 0.001)
+        {
+            break;
+        }
+    }
+    //Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+}
+
+float SphereDistance(float3 p, float r, float3 s)
+{
+    return distance(p, s) - r;
+}
+
+float3 repeat(float3 v, float3 r)
+{
+    float3 newV = float3(v.x - r.x * round(v.x / r.x), v.y - r.y * round(v.y / r.y), v.z - r.z * round(v.z / r.z));
+    return newV;
+}
+
+float3 rotate(float3 v, float a)
+{
+    return float3(v.x * cos(a) - v.z * sin(a), v.y,  v.x * sin(a) + v.z * cos(a));
+}

@@ -1,0 +1,67 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+struct EntityData
+{
+    float2 position;
+    float2 direction;
+};
+
+RWStructuredBuffer<EntityData> entities;
+
+uint entityAmount;
+float seperationForce;
+float aligmentForce;
+float cohesionForce;
+float targetForce;
+float rotationRestriction;
+float maxSquaredDistance;
+
+float2 target;
+
+[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    if (id.x > entityAmount)
+    {
+        return;
+    }
+
+    float2 seperationVector = float2(0, 0);
+    float2 averagePosition = entities[id.x].position;
+    float2 averageDirection = float2(0, 0);
+    int entitiesInRadius = 1;
+
+    for (uint i = 0; i < entityAmount; i++)
+    {
+        if (i == id.x)
+        {
+            continue;
+        }
+        float sqrDistance = (entities[i].position.x - entities[id.x].position.x) * (entities[i].position.x - entities[id.x].position.x) +
+            (entities[i].position.y - entities[id.x].position.y) * (entities[i].position.y - entities[id.x].position.y);
+        //float sqrDistance = length(entities[i].position - entities[id.x].position) * length(entities[i].position - entities[id.x].position);
+        if (maxSquaredDistance < sqrDistance)
+        {
+            continue;
+        }
+        seperationVector += normalize(entities[id.x].position - entities[i].position) * (1 / (1 + sqrDistance));
+        averageDirection += entities[i].direction;
+        averagePosition += entities[i].position;
+        entitiesInRadius++;
+    }
+    
+    float2 aligmentVector = averageDirection != float2(0, 0) ? normalize(averageDirection) : float2(0, 0);
+    float2 targetVector = (target - entities[id.x].position) != float2(0, 0) ? normalize(target - entities[id.x].position) : float2(0, 0);
+
+    entities[id.x].direction = normalize(
+        entities[id.x].direction * rotationRestriction +
+        aligmentVector * aligmentForce +
+        (averagePosition / entitiesInRadius - entities[id.x].position) * cohesionForce +
+        seperationVector * seperationForce +
+        targetVector * targetForce
+    );
+    //
+
+    //Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
+}
